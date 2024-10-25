@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py makemigrations visualizador &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://emov_user:emov_password@db:5432/emov_db
+    depends_on:
+      - db
+
+  db:
+    image: postgis/postgis:13-3.1
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: emov_db
+      POSTGRES_USER: emov_user
+      POSTGRES_PASSWORD: emov_password
+
+volumes:
+  postgres_data:
