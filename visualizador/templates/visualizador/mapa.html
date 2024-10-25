@@ -1,0 +1,180 @@
+{% extends "visualizador/base.html" %}
+
+{% block extra_css %}
+    {% load leaflet_tags %}
+    {% leaflet_css %}
+    <style>
+        #map {
+            height: 400px;
+            width: 50%;
+        }
+        .switch-container {
+            margin-bottom: 10px;
+        }
+        .container-map-table{
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .table{
+            width: 48%;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>Mapa por agrupaciones</h1>
+    <div>
+        Selecciona la agrupación que deseas visualizar:
+        <select name="agrupacion" id="agrupacion">
+            <option value="todas">Todas</option>
+            {% for agrupacion in agrupaciones %}
+                <option value="{{ agrupacion }}">{{ agrupacion }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="switch-container">
+        <label>
+            <input type="radio" name="display" value="puntos" checked> Puntos
+        </label>
+        <label>
+            <input type="radio" name="display" value="poligonos"> Polígonos
+        </label>
+    </div>
+    <div class="container-map-table">    
+        <div id="map"></div>
+        <table class="table" style="display: none;">
+            <thead>
+              <tr>
+                <th scope="col">Estadística</th>
+                <th scope="col">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    {% leaflet_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.3/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.1/proj4leaflet.js"></script>
+
+    <script>
+    proj4.defs("EPSG:32719", "+proj=utm +zone=19 +south +datum=WGS84 +units=m +no_defs");
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var map = L.map('map').setView([-33.46, -70.62], 14);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: 'Map tiles by <a href="https://carto.com/attributions">Carto</a>, under <a href="https://carto.com/terms">Carto Terms</a>. Data by <a href="https://openstreetmap.org">OpenStreetMap</a>, under <a href="https://www.openstreetmap.org/copyright">ODbL</a>.'
+        }).addTo(map);
+
+        var markers = [];
+        var polygons = [];
+        var activePolygon = null; // Almacenar el polígono actualmente seleccionado
+
+        var projFrom = 'EPSG:32719';
+        var projTo = 'EPSG:4326';
+
+        function updateMap(agrupacion, display) {
+            markers.forEach(function(marker) {
+                map.removeLayer(marker);
+            });
+            markers = [];
+
+            polygons.forEach(function(polygon) {
+                map.removeLayer(polygon);
+            });
+            polygons = [];
+
+            if (display === 'puntos') {
+                fetch(`/get_locations_by_agrupacion/?agrupacion=${agrupacion}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.locations.forEach(function(location) {
+                            var marker = L.circle([location.latitude, location.longitude], {
+                                color: 'red',
+                                fillColor: '#f03',
+                                fillOpacity: 0.5,
+                                radius: 5
+                            }).addTo(map);
+                            markers.push(marker);
+                        });
+                    });
+            } else if (display === 'poligonos') {
+                fetch('/get_polygons/')
+                    .then(response => response.json())
+                    .then(data => {
+                        data.polygons.forEach(function(polygonData) {
+                            var latLngs = polygonData.coordinates[0].map(function(coord) {
+                                var converted = proj4(projFrom, projTo, [coord[0], coord[1]]);
+                                return [converted[1], converted[0]];
+                            });
+
+                            var polygon = L.polygon(latLngs, { color: 'green' }).addTo(map);
+                            polygons.push(polygon);
+
+                            // Escuchar clics en el polígono
+                            polygon.on('click', function() {
+                                if (activePolygon) {
+                                    activePolygon.setStyle({ color: 'green' }); // Restablecer color del polígono anterior
+                                }
+                                polygon.setStyle({ color: 'red' }); // Destacar el polígono pulsado
+                                activePolygon = polygon; // Almacenar el polígono activo
+
+                                fetch(`/get_stats_by_polygon/?polygon_id=${polygonData.id}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.error) {
+                                            console.error(data.error);
+                                        } else {
+                                            updateStatsTable(data); // Actualizar la tabla con las estadísticas obtenidas
+                                        }
+                                    })
+                                    .catch(error => console.error('Error al obtener estadísticas:', error));
+                            });
+                        });
+                    })
+                    .catch(error => console.error('Error al obtener polígonos:', error));
+            }
+        }
+
+        function updateStatsTable(data) {
+            const tableBody = document.querySelector('.table tbody');
+            const tabla = document.querySelector('.table');
+            tableBody.innerHTML = ''; // Limpiar la tabla actual
+            tabla.style.display = 'block';
+            data.stats.forEach(stat => {
+                const row = document.createElement('tr');
+                const statCell = document.createElement('td');
+                const valueCell = document.createElement('td');
+
+                statCell.textContent = stat.name;
+                valueCell.textContent = stat.value;
+
+                row.appendChild(statCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        updateMap('todas', 'puntos');
+
+        document.getElementById('agrupacion').addEventListener('change', function(event) {
+            var display = document.querySelector('input[name="display"]:checked').value;
+            updateMap(event.target.value, display);
+        });
+
+        document.querySelectorAll('input[name="display"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                var agrupacion = document.getElementById('agrupacion').value;
+                updateMap(agrupacion, this.value);
+            });
+        });
+    });
+    </script>
+{% endblock %}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualizador EMOV</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            display: flex;
+        }
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            background-color: #036973;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            text-decoration: none;
+            color: #ffffff;
+        }
+        .sidebar a:hover {
+            background-color: #2ED7AE;
+            color: white;
+        }
+        .content {
+            flex: 1;
+            padding: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+
+        }
+        .logo {
+            width: 100px;  /* Ajusta el tamaño del logo según tus necesidades */
+            height: auto;
+            margin: 30px auto; /* Centra el logo horizontalmente */
+            display: block;
+        }
+    </style>
+    {% block extra_css %}
+        <!-- Puedes añadir CSS adicional aquí -->
+    {% endblock %}
+</head>
+<body>
+    <!-- <header>
+    </header> -->
+        <div class="sidebar">
+            <div class="text-center">
+                <img src="{% static 'Logo/svg/Logo_color_2.svg' %}" alt="Logo" class="logo">
+            </div>
+            <a href="{% url 'visualizador:map' %}">Mapas</a>
+            <a href="">Gráficos</a>
+            <a href="{% url 'visualizador:upload_file' %}">Actualizar datos</a>
+        </div>
+        <div class="content">
+            {% block content %}
+            <!-- El contenido de cada página irá aquí -->
+            {% endblock %}
+        </div>
+    <!-- <footer>
+    </footer> -->
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>
+

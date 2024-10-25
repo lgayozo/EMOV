@@ -1,0 +1,74 @@
+{% extends "visualizador/base.html" %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        background-color: #036973; /* Fondo verde claro */
+        cursor: pointer;
+        width: 100%;
+        max-width: 500px;
+        margin: 20px auto;
+    }
+
+    .upload-label {
+        display: block;
+        cursor: pointer;
+    }
+
+    .upload-icon {
+        font-size: 40px; /* Tamaño del ícono */
+        margin-bottom: 10px;
+    }
+
+    .upload-text {
+        font-size: 18px;
+        color: #2ED7AE; /* Color verde del texto */
+    }
+
+    .upload-container:hover {
+        background-color: #d4edda; /* Fondo verde más claro al pasar el mouse */
+    }
+
+    button {
+        background-color: #2ED7AE; /* Fondo verde oscuro */
+        color: #036973; /* Color verde claro del texto */
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+        width: 100%;
+        max-width: 500px;
+    }
+
+    button:hover {
+        background-color: #02837a; /* Fondo verde más oscuro al pasar el mouse */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h1>Subir nuevo dataset</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="upload-container">
+            <label for="zip-upload" class="upload-label">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Selecciona el archivo ZIP</div>
+            </label>
+            <input id="zip-upload" type="file" name="zip_file" style="display: none;" />
+        </div>
+        <div class="upload-container">
+            <label for="csv-upload" class="upload-label">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Selecciona el archivo CSV</div>
+            </label>
+            <input id="csv-upload" type="file" name="csv_file" style="display: none;" />
+        </div>
+        <button type="submit"><i class="fas fa-paper-plane"></i> Subir</button>
+    </form>
+{% endblock %}
